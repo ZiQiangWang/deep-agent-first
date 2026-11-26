@@ -60,7 +60,7 @@ SUBAGENTS = [
 
 
 def _build_agent(backend=None):
-    return create_deep_agent(
+    agent = create_deep_agent(
         model=DEFAULT_MODEL,
         tools=[utc_now],
         backend=backend,
@@ -70,6 +70,11 @@ def _build_agent(backend=None):
         interrupt_on={"execute": True, "write_file": True},
         name="deep_agent",
     )
+
+    revision = os.getenv("LANGSMITH_REVISION_ID") or os.getenv("GIT_COMMIT_SHA")
+    if revision:
+        return agent.with_config(metadata={"revision_id": revision})
+    return agent
 
 
 RO_AGENT = _build_agent()
