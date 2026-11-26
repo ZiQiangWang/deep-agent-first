@@ -41,6 +41,11 @@ uv run langgraph dev
 uv run langgraph deploy
 ```
 
+Set `LANGSMITH_REVISION_ID` in the deployment environment to the deployed git
+commit SHA (obtain it with `git rev-parse HEAD`) so traces include `revision_id`
+metadata. `GIT_COMMIT_SHA` is used as a fallback when `LANGSMITH_REVISION_ID` is
+unset or empty.
+
 See the [CLI docs](https://docs.langchain.com/langsmith/cli#deploy) for deploy options.
 
 To set up CI instead, push this repo to GitHub and configure your deployment through the LangSmith UI.
