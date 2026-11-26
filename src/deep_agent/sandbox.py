@@ -14,10 +14,12 @@ from deepagents.backends.protocol import (
     WriteResult,
 )
 from deepagents.backends.sandbox import BaseSandbox
-from langsmith.sandbox import AsyncSandbox, AsyncSandboxClient, ResourceNotFoundError
+from langsmith.sandbox import AsyncSandbox, AsyncSandboxClient
 
-DEFAULT_TEMPLATE_NAME = "deep-agent"
-DEFAULT_TEMPLATE_IMAGE = "python:3"
+DEFAULT_SNAPSHOT_NAME = "deep-agent"
+DEFAULT_SNAPSHOT_IMAGE = "python:3"
+SNAPSHOT_FS_CAPACITY_BYTES = 2 * 1024**3
+SNAPSHOT_PAGE_SIZE = 100
 
 _backends: dict[str, LangSmithBackend] = {}
 
@@ -99,27 +101,42 @@ async def get_or_create_sandbox(thread_id: str) -> LangSmithBackend:
     api_key = os.environ.get("LANGSMITH_API_KEY") or os.environ.get(
         "LANGSMITH_API_KEY_PROD"
     )
-    template_name = os.environ.get("SANDBOX_TEMPLATE_NAME", DEFAULT_TEMPLATE_NAME)
-    template_image = os.environ.get("SANDBOX_TEMPLATE_IMAGE", DEFAULT_TEMPLATE_IMAGE)
+    snapshot_name = os.environ.get("SANDBOX_TEMPLATE_NAME", DEFAULT_SNAPSHOT_NAME)
+    snapshot_image = os.environ.get("SANDBOX_TEMPLATE_IMAGE", DEFAULT_SNAPSHOT_IMAGE)
 
     client = AsyncSandboxClient(api_key=api_key)
-    await _ensure_template(client, template_name, template_image)
-    sandbox = await client.create_sandbox(template_name=template_name, timeout=180)
+    snapshot_id = await _ensure_snapshot(client, snapshot_name, snapshot_image)
+    sandbox = await client.create_sandbox(snapshot_id=snapshot_id, timeout=180)
 
     backend = LangSmithBackend(sandbox)
     _backends[thread_id] = backend
     return backend
 
 
-async def _ensure_template(
+async def _ensure_snapshot(
     client: AsyncSandboxClient,
-    template_name: str,
-    template_image: str,
-) -> None:
-    """Ensure the sandbox template exists, creating it if needed."""
-    try:
-        await client.get_template(template_name)
-    except ResourceNotFoundError as e:
-        if e.resource_type != "template":
-            raise
-        await client.create_template(name=template_name, image=template_image)
+    snapshot_name: str,
+    snapshot_image: str,
+) -> str:
+    """Return the ID of a ready snapshot, creating one if it does not exist."""
+    offset = 0
+    while True:
+        snapshots = await client.list_snapshots(
+            name_contains=snapshot_name, limit=SNAPSHOT_PAGE_SIZE, offset=offset
+        )
+        for snapshot in snapshots:
+            if snapshot.name == snapshot_name:
+                if snapshot.status != "ready":
+                    snapshot = await client.wait_for_snapshot(snapshot.id, timeout=180)
+                return snapshot.id
+        if len(snapshots) < SNAPSHOT_PAGE_SIZE:
+            break
+        offset += len(snapshots)
+
+    snapshot = await client.create_snapshot(
+        name=snapshot_name,
+        docker_image=snapshot_image,
+        fs_capacity_bytes=SNAPSHOT_FS_CAPACITY_BYTES,
+        timeout=180,
+    )
+    return snapshot.id

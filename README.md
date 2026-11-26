@@ -12,7 +12,7 @@ Deployment template for a deep agent built with `create_deep_agent(...)`.
 
 ## Prerequisites
 
-- An API key for your model provider (Anthropic by default)
+- A DeepSeek API key (or a key for your chosen model provider)
 - A [LangSmith](https://smith.langchain.com/) account (Plus plan or higher) to deploy
 
 ## Quickstart
@@ -23,6 +23,11 @@ Deployment template for a deep agent built with `create_deep_agent(...)`.
 uv sync
 cp .env.example .env
 ```
+
+Set `DEEPSEEK_API_KEY` in `.env` before starting the server. If `.env` already
+exists, update `DEEP_AGENT_MODEL=deepseek:deepseek-chat` and add your DeepSeek
+key instead of overwriting the file. `DEEP_AGENT_MODEL` can still select a
+different provider when needed.
 
 2. Start the dev server:
 
@@ -49,7 +54,7 @@ make lint
 make format
 ```
 
-Integration tests are skipped unless `ANTHROPIC_API_KEY` is set.
+Integration tests are skipped unless `DEEPSEEK_API_KEY` is set.
 
 ## Reference docs
 

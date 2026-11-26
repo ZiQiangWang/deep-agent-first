@@ -13,7 +13,7 @@ from langgraph_sdk.runtime import ServerRuntime
 
 from deep_agent.sandbox import get_or_create_sandbox
 
-DEFAULT_MODEL = os.getenv("DEEP_AGENT_MODEL", "anthropic:claude-sonnet-4-6")
+DEFAULT_MODEL = os.getenv("DEEP_AGENT_MODEL", "deepseek:deepseek-chat")
 
 SYSTEM_PROMPT = """
 You are a deep agent.
