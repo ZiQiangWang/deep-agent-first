@@ -63,10 +63,10 @@ class LangSmithBackend(BaseSandbox):
     async def awrite(self, file_path: str, content: str) -> WriteResult:
         try:
             await self._sandbox.write(file_path, content.encode("utf-8"))
-            return WriteResult(path=file_path, files_update=None)
         except Exception as exc:  # noqa: BLE001
             # The backend protocol returns write failures instead of raising them.
             return WriteResult(error=f"Failed to write file '{file_path}': {exc}")
+        return WriteResult(path=file_path)
 
     def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
         raise NotImplementedError("Use adownload_files()")

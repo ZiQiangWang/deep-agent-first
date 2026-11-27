@@ -8,6 +8,27 @@ from deep_agent import sandbox as sandbox_module
 pytestmark = pytest.mark.anyio
 
 
+async def test_awrite_returns_success() -> None:
+    sandbox = SimpleNamespace(write=AsyncMock())
+    backend = sandbox_module.LangSmithBackend(sandbox)
+
+    result = await backend.awrite("/tmp/x.md", "hi")
+
+    assert result.path == "/tmp/x.md"
+    assert result.error is None
+    sandbox.write.assert_awaited_once_with("/tmp/x.md", b"hi")
+
+
+async def test_awrite_returns_write_failure() -> None:
+    sandbox = SimpleNamespace(write=AsyncMock(side_effect=RuntimeError("write failed")))
+    backend = sandbox_module.LangSmithBackend(sandbox)
+
+    result = await backend.awrite("/tmp/x.md", "hi")
+
+    assert result.path is None
+    assert result.error == "Failed to write file '/tmp/x.md': write failed"
+
+
 async def test_creates_snapshot_and_sandbox_when_missing() -> None:
     client = SimpleNamespace(
         list_snapshots=AsyncMock(return_value=[]),
